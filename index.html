@@ -3,147 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSAプロ・シミュレーター v5</title>
+    <title>PSA多銘柄シミュレーター v6</title>
     <style>
-        body { font-family: sans-serif; max-width: 550px; margin: 20px auto; padding: 10px; background-color: #f0f2f5; color: #333; }
+        body { font-family: sans-serif; max-width: 700px; margin: 20px auto; padding: 10px; background-color: #f0f2f5; color: #333; }
         .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; font-size: 1.5em; }
-        .input-section { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e8eaed; }
+        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
         
-        .row { display: flex; align-items: center; justify-content: space-between; margin-top: 15px; gap: 10px; }
-        label { font-weight: bold; font-size: 0.85em; color: #5f6368; flex: 1; }
+        .item-row { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e8eaed; position: relative; }
+        .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; color: #1a73e8; }
         
-        /* 入力エリアの調整 */
-        .val-input { width: 100px; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; font-size: 1em; text-align: right; }
-        input[type="range"] { flex: 2; margin: 0; cursor: pointer; }
+        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 0.75em; color: #5f6368; margin-bottom: 4px; }
+        input { padding: 8px; border: 1px solid #dadce0; border-radius: 6px; font-size: 0.9em; }
+        
+        .slider-box { grid-column: span 2; margin-top: 10px; }
+        .slider-info { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: bold; }
 
-        /* 利益表示エリア */
-        .result-container { padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
-        .profit-bg { background: #e6f4ea; border: 1px solid #34a853; color: #137333; }
-        .loss-bg { background: #fce8e6; border: 1px solid #d93025; color: #a50e0e; }
+        .result-panel { background: #1a73e8; color: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; background: rgba(255,255,255,0.2); margin-bottom: 10px; display: inline-block; }
         
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .summary-item { background: rgba(255,255,255,0.6); padding: 10px; border-radius: 8px; }
-        
-        .detail-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 10px; }
-        .detail-table th { background: #f1f3f4; padding: 8px; text-align: left; color: #5f6368; }
-        .detail-table td { padding: 8px; border-bottom: 1px solid #e8eaed; }
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; color: white; margin-bottom: 10px; display: inline-block; }
+        .btn-add { background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
+        .btn-del { background: #d93025; color: white; border: none; border-radius: 4px; padding: 2px 8px; font-size: 0.7em; cursor: pointer; }
+
+        .detail-table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
+        .detail-table th { text-align: left; padding: 8px; border-bottom: 2px solid #eee; }
+        .detail-table td { padding: 8px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>PSA鑑定 収支シミュレーター</h2>
-    
-    <div class="input-section">
-        <div id="planBadge" class="badge" style="background:#1a73e8;">判定中</div>
-        
-        <label>申込み合計枚数</label>
-        <div class="row">
-            <input type="range" id="numRange" min="1" max="100" value="20" oninput="sync('numRange', 'numInput')">
-            <input type="number" id="numInput" value="20" class="val-input" oninput="sync('numInput', 'numRange')">
-        </div>
+    <h2>PSA多銘柄 収支計算</h2>
 
-        <label style="margin-top:20px;">PSA10 取得率 (%)</label>
-        <div class="row">
-            <input type="range" id="rateRange" min="0" max="100" value="80" oninput="sync('rateRange', 'rateInput')">
-            <input type="number" id="rateInput" value="80" class="val-input" oninput="sync('rateInput', 'rateRange')">
-        </div>
-
-        <label style="margin-top:20px;">1枚あたりの仕入れ値 (円)</label>
-        <input type="number" id="buyPrice" value="2000" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #dadce0;" oninput="calculate()">
-
-        <div style="display:flex; gap:10px; margin-top:15px;">
-            <div style="flex:1;">
-                <label>予想額 [PSA10]</label>
-                <input type="number" id="sell10" value="14000" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #dadce0;" oninput="calculate()">
-            </div>
-            <div style="flex:1;">
-                <label>予想額 [PSA9以下]</label>
-                <input type="number" id="sell9" value="4000" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #dadce0;" oninput="calculate()">
-            </div>
-        </div>
+    <div class="result-panel">
+        <div id="planBadge" class="badge">判定中...</div>
+        <div>全 <span id="totalCount">0</span> 枚の期待合計利益</div>
+        <div style="font-size: 2.5em; font-weight: bold;"><span id="totalProfit">0</span>円</div>
     </div>
 
-    <div id="resultArea" class="result-container profit-bg">
-        <div style="font-size: 0.9em;">合計期待利益 (<span id="totalNumDisp">20</span>枚分)</div>
-        <div style="font-size: 2.2em; font-weight: bold;"><span id="totalProfit">0</span>円</div>
-        
-        <div class="summary-grid">
-            <div class="summary-item">1枚平均利益<br><b><span id="avgProfit">0</span>円</b></div>
-            <div class="summary-item">1枚平均コスト<br><b><span id="avgCost">0</span>円</b></div>
+    <button class="btn-add" onclick="addRow()">+ 銘柄を追加</button>
+
+    <div id="itemsContainer">
         </div>
-    </div>
 
     <table class="detail-table">
         <thead>
-            <tr><th>内訳</th><th>PSA10</th><th>PSA9以下</th></tr>
+            <tr><th>銘柄</th><th>枚数</th><th>1枚平均利益</th><th>小計</th></tr>
         </thead>
-        <tbody id="detailBody">
-            </tbody>
+        <tbody id="summaryBody"></tbody>
     </table>
 </div>
 
 <script>
-// 入力欄を連動させる関数
-function sync(fromId, toId) {
-    const fromEl = document.getElementById(fromId);
-    const toEl = document.getElementById(toId);
-    toEl.value = fromEl.value;
+let rowCount = 0;
+
+function addRow() {
+    rowCount++;
+    const container = document.getElementById('itemsContainer');
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.id = `row-${rowCount}`;
+    div.innerHTML = `
+        <div class="row-header">
+            <span>銘柄 #${rowCount}</span>
+            <button class="btn-del" onclick="removeRow(${rowCount})">削除</button>
+        </div>
+        <div class="grid-inputs">
+            <div class="input-group"><label>枚数</label><input type="number" class="num" value="5" oninput="calculate()"></div>
+            <div class="input-group"><label>仕入れ/枚</label><input type="number" class="buy" value="1000" oninput="calculate()"></div>
+            <div class="input-group"><label>10予想額</label><input type="number" class="s10" value="12000" oninput="calculate()"></div>
+            <div class="input-group"><label>9予想額</label><input type="number" class="s9" value="3000" oninput="calculate()"></div>
+            <div class="slider-box">
+                <div class="slider-info"><span>10取得率</span><span class="rate-disp">80%</span></div>
+                <input type="range" class="rate" min="0" max="100" value="80" oninput="calculate()">
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+    calculate();
+}
+
+function removeRow(id) {
+    document.getElementById(`row-${id}`).remove();
     calculate();
 }
 
 function calculate() {
-    const numCards = parseInt(document.getElementById('numInput').value) || 1;
-    const rate10 = (parseInt(document.getElementById('rateInput').value) || 0) / 100;
-    const buyPrice = parseInt(document.getElementById('buyPrice').value) || 0;
-    const sell10 = parseInt(document.getElementById('sell10').value) || 0;
-    const sell9 = parseInt(document.getElementById('sell9').value) || 0;
+    const rows = document.querySelectorAll('.item-row');
+    let totalNum = 0;
+    let itemsData = [];
 
-    document.getElementById('totalNumDisp').innerText = numCards;
+    // 1. まず総枚数を把握
+    rows.forEach(row => {
+        const num = parseInt(row.querySelector('.num').value) || 0;
+        totalNum += num;
+    });
 
-    // PSAプラン・鑑定料
-    let kanteiFee = (numCards >= 20) ? 3980 : 4980;
-    const badge = document.getElementById('planBadge');
-    badge.innerText = (numCards >= 20) ? "バリュー・バルク適用" : "バリュー(単品)適用";
-    badge.style.background = (numCards >= 20) ? "#34a853" : "#1a73e8";
+    // 2. PSAプラン判定
+    let kanteiFee = (totalNum >= 20) ? 3980 : 4980;
+    document.getElementById('planBadge').innerText = (totalNum >= 20) ? "バリュー・バルク適用中" : "バリュー(単品)適用中";
+    document.getElementById('planBadge').style.background = (totalNum >= 20) ? "#34a853" : "#1a73e8";
 
-    // 返送料テーブル
+    // 3. 返送料計算
     let returnShip = 2000;
-    if (numCards >= 2 && numCards <= 4) returnShip = 2500;
-    else if (numCards >= 5 && numCards <= 10) returnShip = 3500;
-    else if (numCards >= 11 && numCards <= 20) returnShip = 4500;
-    else if (numCards > 20) returnShip = 6500;
-    
-    const fixedCostPerCard = (returnShip + 550) / numCards;
+    if (totalNum >= 2 && totalNum <= 4) returnShip = 2500;
+    else if (totalNum >= 5 && totalNum <= 10) returnShip = 3500;
+    else if (totalNum >= 11 && totalNum <= 20) returnShip = 4500;
+    else if (totalNum > 20) returnShip = 6500;
+    const fixedPerCard = (returnShip + 550) / (totalNum || 1);
 
-    const cost10 = Math.floor(sell10 * 0.1) + 500;
-    const cost9 = Math.floor(sell9 * 0.1) + 500;
+    // 4. 各銘柄の利益計算
+    let grandTotalProfit = 0;
+    let summaryHtml = "";
 
-    const profit10 = sell10 - (buyPrice + kanteiFee + fixedCostPerCard + cost10);
-    const profit9 = sell9 - (buyPrice + kanteiFee + fixedCostPerCard + cost9);
+    rows.forEach((row, index) => {
+        const num = parseInt(row.querySelector('.num').value) || 0;
+        const buy = parseInt(row.querySelector('.buy').value) || 0;
+        const s10 = parseInt(row.querySelector('.s10').value) || 0;
+        const s9 = parseInt(row.querySelector('.s9').value) || 0;
+        const rate = parseInt(row.querySelector('.rate').value) / 100;
+        row.querySelector('.rate-disp').innerText = Math.round(rate * 100) + "%";
 
-    const avgProfit = (profit10 * rate10) + (profit9 * (1 - rate10));
-    const totalProfit = avgProfit * numCards;
-    const avgCost = kanteiFee + fixedCostPerCard + buyPrice + ((cost10 * rate10) + (cost9 * (1 - rate10)));
+        const cost10 = Math.floor(s10 * 0.1) + 500;
+        const cost9 = Math.floor(s9 * 0.1) + 500;
 
-    document.getElementById('totalProfit').innerText = Math.round(totalProfit).toLocaleString();
-    document.getElementById('avgProfit').innerText = Math.round(avgProfit).toLocaleString();
-    document.getElementById('avgCost').innerText = Math.round(avgCost).toLocaleString();
-    
-    // テーブル内訳の生成
-    document.getElementById('detailBody').innerHTML = `
-        <tr><td>鑑定料+諸経費</td><td>-${Math.round(kanteiFee + fixedCostPerCard).toLocaleString()}</td><td>-${Math.round(kanteiFee + fixedCostPerCard).toLocaleString()}</td></tr>
-        <tr><td>販売手数料+送料</td><td>-${cost10.toLocaleString()}</td><td>-${cost9.toLocaleString()}</td></tr>
-        <tr style="font-weight:bold;"><td>1枚利益</td><td style="color:#1e8e3e;">+${Math.round(profit10).toLocaleString()}</td><td style="color:${profit9<0?'#d93025':'#333'}">${(profit9>=0?'+':'')+Math.round(profit9).toLocaleString()}</td></tr>
-    `;
+        const profit10 = s10 - (buy + kanteiFee + fixedPerCard + cost10);
+        const profit9 = s9 - (buy + kanteiFee + fixedPerCard + cost9);
+        const avgProfit = (profit10 * rate) + (profit9 * (1 - rate));
+        const subTotal = avgProfit * num;
 
-    const resArea = document.getElementById('resultArea');
-    resArea.className = (totalProfit >= 0) ? "result-container profit-bg" : "result-container loss-bg";
+        grandTotalProfit += subTotal;
+
+        summaryHtml += `
+            <tr>
+                <td>銘柄#${index+1}</td>
+                <td>${num}枚</td>
+                <td>${Math.round(avgProfit).toLocaleString()}円</td>
+                <td><b>${Math.round(subTotal).toLocaleString()}円</b></td>
+            </tr>
+        `;
+    });
+
+    document.getElementById('totalCount').innerText = totalNum;
+    document.getElementById('totalProfit').innerText = Math.round(grandTotalProfit).toLocaleString();
+    document.getElementById('summaryBody').innerHTML = summaryHtml;
 }
 
-calculate();
+// 初期状態で1つ追加
+addRow();
 </script>
 
 </body>
