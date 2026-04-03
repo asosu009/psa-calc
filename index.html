@@ -3,75 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSA鑑定 利益シミュレーター</title>
+    <title>PSA収支シミュレーター v3</title>
     <style>
         body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 10px; background-color: #f4f7f6; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h2 { color: #2c3e50; text-align: center; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        .result { margin-top: 25px; padding: 15px; border-radius: 8px; font-size: 1.1em; text-align: center; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 20px; font-size: 1.4em; }
+        .input-group { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.85em; color: #555; }
+        input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1.1em; }
+        .result-box { margin-top: 20px; padding: 20px; border-radius: 10px; text-align: center; }
         .profit { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .loss { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        .detail-table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 0.85em; background: white; border-radius: 5px; }
+        .detail-table th, .detail-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .total-row { font-weight: bold; font-size: 1.1em; background: #fff; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-bottom: 10px; font-weight: bold; background: #3498db; color: white; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>PSA鑑定シミュレーター</h2>
+    <h2>PSA鑑定 収支内訳</h2>
     
-    <label>プラン</label>
-    <select id="plan" onchange="calculate()">
-        <option value="bulk">バリュー・バルク (20枚以上)</option>
-        <option value="value">バリュー (単品 1枚〜)</option>
-    </select>
+    <div class="input-group">
+        <label>合計申込み枚数</label>
+        <input type="number" id="numCards" value="20" oninput="calculate()">
+        <div id="planBadge" class="badge">バリュー・バルク適用</div>
 
-    <label>仕入れ値 (円)</label>
-    <input type="number" id="buyPrice" value="2000" oninput="calculate()">
+        <label>1枚あたりの仕入れ値 (円)</label>
+        <input type="number" id="buyPrice" value="2000" oninput="calculate()">
 
-    <label>PSA10 予想販売額 (円)</label>
-    <input type="number" id="sellPrice" value="14000" oninput="calculate()">
+        <label>PSA10 予想販売額 (円)</label>
+        <input type="number" id="sellPrice" value="14000" oninput="calculate()">
+    </div>
 
-    <label>バルク合計枚数 (※バルク選択時のみ)</label>
-    <input type="number" id="numCards" value="20" oninput="calculate()">
+    <div id="resultArea" class="result-box profit">
+        <div style="font-size: 0.9em;">1枚あたりの利益</div>
+        <div style="font-size: 2.2em; font-weight: bold;"><span id="profitText">0</span>円</div>
+        <div style="margin-top: 5px;">利益率: <span id="marginText">0</span>%</div>
 
-    <div id="resultArea" class="result profit">
-        利益: <span id="profitText">0</span>円<br>
-        <small>利益率: <span id="marginText">0</span>%</small>
+        <table class="detail-table">
+            <tbody>
+                <tr><td>販売額</td><td id="d-sell" style="text-align:right;">+0円</td></tr>
+                <tr><td>手数料(10%)・送料</td><td id="d-fee" style="text-align:right;">-0円</td></tr>
+                <tr><td>仕入れ原価</td><td id="d-buy" style="text-align:right;">-0円</td></tr>
+                <tr><td>鑑定料</td><td id="d-kantei" style="text-align:right;">-0円</td></tr>
+                <tr><td>諸経費(返送・事務)</td><td id="d-fixed" style="text-align:right;">-0円</td></tr>
+                <tr class="total-row"><td>合計利益</td><td id="d-total" style="text-align:right;">0円</td></tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
 <script>
 function calculate() {
-    const plan = document.getElementById('plan').value;
+    const numCards = Math.max(1, Number(document.getElementById('numCards').value));
     const buyPrice = Number(document.getElementById('buyPrice').value);
     const sellPrice = Number(document.getElementById('sellPrice').value);
-    const numCards = Number(document.getElementById('numCards').value);
 
-    // 固定ルール
-    const feeRate = 0.10; // メルカリ手数料10%
-    const shippingToBuyer = 500; // 梱包・送料
-    const returnShipping = 1980; // PSAからの返送料
+    // PSA鑑定料プラン判定
+    let kanteiFee = (numCards >= 20) ? 3980 : 4980;
+    const planBadge = document.getElementById('planBadge');
+    if (numCards >= 20) {
+        planBadge.innerText = "バリュー・バルク適用";
+        planBadge.style.background = "#27ae60";
+    } else {
+        planBadge.innerText = "バリュー(単品)適用";
+        planBadge.style.background = "#3498db";
+    }
+
+    // PSA返送料テーブル (2026年目安)
+    let returnShipping = 2000; // 1枚
+    if (numCards >= 2 && numCards <= 4) returnShipping = 2500;
+    else if (numCards >= 5 && numCards <= 10) returnShipping = 3500;
+    else if (numCards >= 11 && numCards <= 20) returnShipping = 4500;
+    else if (numCards > 20) returnShipping = 6500;
+
     const adminFee = 550; // 事務手数料
+    const fixedCostPerCard = (returnShipping + adminFee) / numCards;
 
-    let kanteiFee = (plan === 'bulk') ? 3980 : 4980;
-    let fixedCostPerCard = (plan === 'bulk') ? (returnShipping + adminFee) / numCards : (returnShipping + adminFee);
+    // メルカリ販売コスト
+    const sellingFee = Math.floor(sellPrice * 0.10);
+    const shippingToBuyer = 500;
 
     // 計算
-    const sellingFee = sellPrice * feeRate;
     const totalCost = buyPrice + sellingFee + shippingToBuyer + kanteiFee + fixedCostPerCard;
     const profit = sellPrice - totalCost;
     const margin = (profit / sellPrice) * 100;
 
-    // 表示反映
-    const resultArea = document.getElementById('resultArea');
+    // 表示更新
     document.getElementById('profitText').innerText = Math.round(profit).toLocaleString();
     document.getElementById('marginText').innerText = margin.toFixed(1);
+    document.getElementById('d-sell').innerText = "+" + sellPrice.toLocaleString() + "円";
+    document.getElementById('d-fee').innerText = "-" + (sellingFee + shippingToBuyer).toLocaleString() + "円";
+    document.getElementById('d-buy').innerText = "-" + buyPrice.toLocaleString() + "円";
+    document.getElementById('d-kantei').innerText = "-" + kanteiFee.toLocaleString() + "円";
+    document.getElementById('d-fixed').innerText = "-" + Math.round(fixedCostPerCard).toLocaleString() + "円";
+    document.getElementById('d-total').innerText = Math.round(profit).toLocaleString() + "円";
 
+    const resultArea = document.getElementById('resultArea');
     if (profit >= 0) {
-        resultArea.className = "result profit";
+        resultArea.className = "result-box profit";
     } else {
-        resultArea.className = "result loss";
+        resultArea.className = "result-box loss";
     }
 }
 calculate();
