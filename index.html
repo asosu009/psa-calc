@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSAプロ・シミュレーター</title>
+    <title>PSAプロ・シミュレーター v5</title>
     <style>
         body { font-family: sans-serif; max-width: 550px; margin: 20px auto; padding: 10px; background-color: #f0f2f5; color: #333; }
         .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
         h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; font-size: 1.5em; }
         .input-section { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e8eaed; }
-        label { display: block; margin-top: 12px; font-weight: bold; font-size: 0.85em; color: #5f6368; }
-        input[type="number"], input[type="range"] { width: 100%; margin-top: 6px; box-sizing: border-box; }
-        input[type="number"] { padding: 10px; border: 1px solid #dadce0; border-radius: 8px; font-size: 1.1em; }
-        .slider-label { display: flex; justify-content: space-between; align-items: center; }
-        .slider-val { color: #1a73e8; font-size: 1.2em; font-weight: bold; }
         
-        .result-container { padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; transition: 0.3s; }
+        .row { display: flex; align-items: center; justify-content: space-between; margin-top: 15px; gap: 10px; }
+        label { font-weight: bold; font-size: 0.85em; color: #5f6368; flex: 1; }
+        
+        /* 入力エリアの調整 */
+        .val-input { width: 100px; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; font-size: 1em; text-align: right; }
+        input[type="range"] { flex: 2; margin: 0; cursor: pointer; }
+
+        /* 利益表示エリア */
+        .result-container { padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
         .profit-bg { background: #e6f4ea; border: 1px solid #34a853; color: #137333; }
         .loss-bg { background: #fce8e6; border: 1px solid #d93025; color: #a50e0e; }
         
@@ -25,7 +28,6 @@
         .detail-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 10px; }
         .detail-table th { background: #f1f3f4; padding: 8px; text-align: left; color: #5f6368; }
         .detail-table td { padding: 8px; border-bottom: 1px solid #e8eaed; }
-        .high-light { font-weight: bold; color: #1a73e8; }
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: bold; color: white; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
@@ -37,30 +39,35 @@
     <div class="input-section">
         <div id="planBadge" class="badge" style="background:#1a73e8;">判定中</div>
         
-        <div class="slider-label">
-            <label>申込み合計枚数</label>
-            <span class="slider-val" id="numDisp">20</span>
+        <label>申込み合計枚数</label>
+        <div class="row">
+            <input type="range" id="numRange" min="1" max="100" value="20" oninput="sync('numRange', 'numInput')">
+            <input type="number" id="numInput" value="20" class="val-input" oninput="sync('numInput', 'numRange')">
         </div>
-        <input type="range" id="numCards" min="1" max="100" value="20" oninput="calculate()">
 
-        <div class="slider-label" style="margin-top:15px;">
-            <label>PSA10 取得率</label>
-            <span class="slider-val" id="rateDisp">80%</span>
+        <label style="margin-top:20px;">PSA10 取得率 (%)</label>
+        <div class="row">
+            <input type="range" id="rateRange" min="0" max="100" value="80" oninput="sync('rateRange', 'rateInput')">
+            <input type="number" id="rateInput" value="80" class="val-input" oninput="sync('rateInput', 'rateRange')">
         </div>
-        <input type="range" id="psa10Rate" min="0" max="100" value="80" oninput="calculate()">
 
-        <label>1枚あたりの仕入れ値 (円)</label>
-        <input type="number" id="buyPrice" value="2000" oninput="calculate()">
+        <label style="margin-top:20px;">1枚あたりの仕入れ値 (円)</label>
+        <input type="number" id="buyPrice" value="2000" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #dadce0;" oninput="calculate()">
 
-        <label>販売予想額 [PSA10] (円)</label>
-        <input type="number" id="sell10" value="14000" oninput="calculate()">
-
-        <label>販売予想額 [PSA9以下] (円)</label>
-        <input type="number" id="sell9" value="4000" oninput="calculate()">
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <div style="flex:1;">
+                <label>予想額 [PSA10]</label>
+                <input type="number" id="sell10" value="14000" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #dadce0;" oninput="calculate()">
+            </div>
+            <div style="flex:1;">
+                <label>予想額 [PSA9以下]</label>
+                <input type="number" id="sell9" value="4000" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #dadce0;" oninput="calculate()">
+            </div>
+        </div>
     </div>
 
     <div id="resultArea" class="result-container profit-bg">
-        <div style="font-size: 0.9em;">合計期待利益 (<span id="totalNum">20</span>枚分)</div>
+        <div style="font-size: 0.9em;">合計期待利益 (<span id="totalNumDisp">20</span>枚分)</div>
         <div style="font-size: 2.2em; font-weight: bold;"><span id="totalProfit">0</span>円</div>
         
         <div class="summary-grid">
@@ -71,30 +78,30 @@
 
     <table class="detail-table">
         <thead>
-            <tr><th>内訳項目</th><th>PSA10</th><th>PSA9以下</th></tr>
+            <tr><th>内訳</th><th>PSA10</th><th>PSA9以下</th></tr>
         </thead>
-        <tbody>
-            <tr><td>鑑定料(1枚)</td><td id="k-10">0</td><td id="k-9">0</td></tr>
-            <tr><td>諸経費(返送等)</td><td id="f-10">0</td><td id="f-9">0</td></tr>
-            <tr><td>販売手数料+送料</td><td id="s-10">0</td><td id="s-9">0</td></tr>
-            <tr class="high-light"><td>1枚あたりの利益</td><td id="p-10" style="color:#1e8e3e;">0</td><td id="p-9">0</td></tr>
-        </tbody>
+        <tbody id="detailBody">
+            </tbody>
     </table>
 </div>
 
 <script>
-function calculate() {
-    // 入力値取得
-    const numCards = parseInt(document.getElementById('numCards').value);
-    const rate10 = parseInt(document.getElementById('psa10Rate').value) / 100;
-    const buyPrice = parseInt(document.getElementById('buyPrice').value);
-    const sell10 = parseInt(document.getElementById('sell10').value);
-    const sell9 = parseInt(document.getElementById('sell9').value);
+// 入力欄を連動させる関数
+function sync(fromId, toId) {
+    const fromEl = document.getElementById(fromId);
+    const toEl = document.getElementById(toId);
+    toEl.value = fromEl.value;
+    calculate();
+}
 
-    // ラベル更新
-    document.getElementById('numDisp').innerText = numCards;
-    document.getElementById('rateDisp').innerText = Math.round(rate10 * 100) + "%";
-    document.getElementById('totalNum').innerText = numCards;
+function calculate() {
+    const numCards = parseInt(document.getElementById('numInput').value) || 1;
+    const rate10 = (parseInt(document.getElementById('rateInput').value) || 0) / 100;
+    const buyPrice = parseInt(document.getElementById('buyPrice').value) || 0;
+    const sell10 = parseInt(document.getElementById('sell10').value) || 0;
+    const sell9 = parseInt(document.getElementById('sell9').value) || 0;
+
+    document.getElementById('totalNumDisp').innerText = numCards;
 
     // PSAプラン・鑑定料
     let kanteiFee = (numCards >= 20) ? 3980 : 4980;
@@ -111,44 +118,31 @@ function calculate() {
     
     const fixedCostPerCard = (returnShip + 550) / numCards;
 
-    // 手数料等計算関数
-    const getCosts = (sell) => {
-        const fee = Math.floor(sell * 0.10); // メルカリ等10%
-        const ship = 500; // 販売時送料
-        return fee + ship;
-    };
+    const cost10 = Math.floor(sell10 * 0.1) + 500;
+    const cost9 = Math.floor(sell9 * 0.1) + 500;
 
-    const cost10 = getCosts(sell10);
-    const cost9 = getCosts(sell9);
-
-    // 個別純利益
     const profit10 = sell10 - (buyPrice + kanteiFee + fixedCostPerCard + cost10);
     const profit9 = sell9 - (buyPrice + kanteiFee + fixedCostPerCard + cost9);
 
-    // 期待値計算
     const avgProfit = (profit10 * rate10) + (profit9 * (1 - rate10));
     const totalProfit = avgProfit * numCards;
     const avgCost = kanteiFee + fixedCostPerCard + buyPrice + ((cost10 * rate10) + (cost9 * (1 - rate10)));
 
-    // 表示反映
     document.getElementById('totalProfit').innerText = Math.round(totalProfit).toLocaleString();
     document.getElementById('avgProfit').innerText = Math.round(avgProfit).toLocaleString();
     document.getElementById('avgCost').innerText = Math.round(avgCost).toLocaleString();
     
-    // テーブル反映
-    document.getElementById('k-10').innerText = "-" + kanteiFee.toLocaleString();
-    document.getElementById('k-9').innerText = "-" + kanteiFee.toLocaleString();
-    document.getElementById('f-10').innerText = "-" + Math.round(fixedCostPerCard).toLocaleString();
-    document.getElementById('f-9').innerText = "-" + Math.round(fixedCostPerCard).toLocaleString();
-    document.getElementById('s-10').innerText = "-" + cost10.toLocaleString();
-    document.getElementById('s-9').innerText = "-" + cost9.toLocaleString();
-    document.getElementById('p-10').innerText = "+" + Math.round(profit10).toLocaleString();
-    document.getElementById('p-9').innerText = (profit9 >= 0 ? "+" : "") + Math.round(profit9).toLocaleString();
+    // テーブル内訳の生成
+    document.getElementById('detailBody').innerHTML = `
+        <tr><td>鑑定料+諸経費</td><td>-${Math.round(kanteiFee + fixedCostPerCard).toLocaleString()}</td><td>-${Math.round(kanteiFee + fixedCostPerCard).toLocaleString()}</td></tr>
+        <tr><td>販売手数料+送料</td><td>-${cost10.toLocaleString()}</td><td>-${cost9.toLocaleString()}</td></tr>
+        <tr style="font-weight:bold;"><td>1枚利益</td><td style="color:#1e8e3e;">+${Math.round(profit10).toLocaleString()}</td><td style="color:${profit9<0?'#d93025':'#333'}">${(profit9>=0?'+':'')+Math.round(profit9).toLocaleString()}</td></tr>
+    `;
 
-    // 色判定
     const resArea = document.getElementById('resultArea');
     resArea.className = (totalProfit >= 0) ? "result-container profit-bg" : "result-container loss-bg";
 }
+
 calculate();
 </script>
 
