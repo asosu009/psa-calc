@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSAプロ・シミュレーター 最終形</title>
+    <title>PSAプロ・シミュレーター 決定版</title>
     <style>
         :root { --primary: #1a73e8; --success: #34a853; --danger: #d93025; --bg: #f0f2f5; }
         body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 10px; background: var(--bg); color: #333; }
@@ -24,9 +24,11 @@
 
         .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.8em; margin-bottom: 8px; display: inline-block; }
         
-        .total-payment-box { background: #e3f2fd; border: 1px solid #bbdefb; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
-        .payment-title { font-size: 0.85em; color: #1565c0; font-weight: bold; margin-bottom: 5px; }
-        .payment-amount { font-size: 1.8em; font-weight: bold; color: #0d47a1; }
+        /* 投資額サマリーエリア */
+        .investment-box { background: #e3f2fd; border: 1px solid #bbdefb; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        .inv-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9em; color: #1565c0; }
+        .inv-total { border-top: 1px solid #bbdefb; margin-top: 8px; padding-top: 8px; color: #0d47a1; font-weight: bold; font-size: 1.1em; }
+        .val { font-weight: bold; font-size: 1.2em; }
 
         .cost-detail-box { background: #fffde7; border: 1px solid #fff59d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.82em; }
         .cost-detail-box div { display: flex; justify-content: space-between; margin-bottom: 3px; }
@@ -61,16 +63,15 @@
         <div style="margin-top:5px; font-size: 0.9em;">平均利益率: <span id="totalMargin">0</span>%</div>
     </div>
 
-    <div class="total-payment-box">
-        <div class="payment-title">今回のPSA支払い予想総額</div>
-        <div class="payment-amount"><span id="psaTotalPayment">0</span>円</div>
-        <div style="font-size: 0.75em; color: #546e7a; margin-top:4px;">(鑑定料 + 返送料 + 事務手数料)</div>
+    <div class="investment-box">
+        <div class="inv-row"><span>PSA支払い総額</span> <span class="val"><span id="psaTotalPayment">0</span>円</span></div>
+        <div class="inv-row"><span>カード仕入れ総額</span> <span class="val"><span id="totalBuyCost">0</span>円</span></div>
+        <div class="inv-row inv-total"><span>総投資額 (キャッシュ準備)</span> <span class="val"><span id="grandTotalInvestment">0</span>円</span></div>
     </div>
 
     <div class="cost-detail-box">
-        <div style="font-weight:bold; border-bottom:1px solid #eee; margin-bottom:8px;">1枚あたりの販売・発送経費</div>
-        <div><span>販売手数料 (10%)</span> <span>販売額の10%</span></div>
-        <div><span>販売時送料 (梱包資材込)</span> <span>500円 固定</span></div>
+        <div style="font-weight:bold; border-bottom:1px solid #eee; margin-bottom:8px;">1枚あたりの販売経費</div>
+        <div><span>販売手数料(10%) + 送料(500円)</span> <span>自動計算済</span></div>
         <div style="color:var(--primary); font-weight:bold; margin-top:5px; border-top:1px dashed #ccc;"><span>PSA経費/枚 (鑑定等)</span> <span id="c-subtotal">0円</span></div>
     </div>
 
@@ -116,7 +117,13 @@ function removeRow(id) { document.getElementById(`row-${id}`).remove(); calculat
 function calculate() {
     const rows = document.querySelectorAll('.item-row');
     let totalNum = 0;
-    rows.forEach(row => totalNum += (parseInt(row.querySelector('.num').value) || 0));
+    let totalBuyCost = 0;
+    rows.forEach(row => {
+        const n = parseInt(row.querySelector('.num').value) || 0;
+        const b = parseInt(row.querySelector('.buy').value) || 0;
+        totalNum += n;
+        totalBuyCost += (n * b);
+    });
 
     let kanteiFee = (totalNum >= 20) ? 3980 : 4980;
     let returnShip = (totalNum >= 21) ? 6500 : (totalNum >= 11 ? 4500 : (totalNum >= 5 ? 3500 : (totalNum >= 2 ? 2500 : 2000)));
@@ -126,6 +133,8 @@ function calculate() {
     const fixedPerCard = psaTotalPayment / (totalNum || 1);
 
     document.getElementById('psaTotalPayment').innerText = psaTotalPayment.toLocaleString();
+    document.getElementById('totalBuyCost').innerText = totalBuyCost.toLocaleString();
+    document.getElementById('grandTotalInvestment').innerText = (psaTotalPayment + totalBuyCost).toLocaleString();
     document.getElementById('c-subtotal').innerText = Math.round(fixedPerCard).toLocaleString() + "円";
 
     let grandTotalProfit = 0;
@@ -140,7 +149,6 @@ function calculate() {
         const r = parseInt(row.querySelector('.rate').value) / 100;
         row.querySelector('.rate-disp').innerText = Math.round(r * 100) + "%";
 
-        // 手数料(10%)と販売送料(500円)を計算に組み込む
         const p10 = (s10 * 0.9 - 500) - (b + fixedPerCard);
         const p9 = (s9 * 0.9 - 500) - (b + fixedPerCard);
         const avg = (p10 * r) + (p9 * (1 - r));
@@ -166,10 +174,10 @@ function calculate() {
         document.getElementById('planBadge').innerText = "枚数を入力してください";
     } else if (grandTotalProfit < 0) {
         mainPanel.className = "summary-panel bg-red";
-        document.getElementById('statusMsg').innerText = "⚠️ 赤字：仕入れNG";
+        document.getElementById('statusMsg').innerText = "⚠️ 赤字リスク：再検討";
     } else if (margin >= 40) {
         mainPanel.className = "summary-panel bg-rainbow";
-        document.getElementById('statusMsg').innerText = "🌈 神案件：即GO！";
+        document.getElementById('statusMsg').innerText = "🌈 神案件：即仕入れ！";
     } else {
         mainPanel.className = "summary-panel bg-blue";
         document.getElementById('statusMsg').innerText = "期待合計利益";
