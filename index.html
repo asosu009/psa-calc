@@ -3,53 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSA多銘柄シミュレーター v6</title>
+    <title>PSA多銘柄シミュレーター 極</title>
     <style>
-        body { font-family: sans-serif; max-width: 700px; margin: 20px auto; padding: 10px; background-color: #f0f2f5; color: #333; }
-        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
+        :root { --primary: #1a73e8; --success: #34a853; --danger: #d93025; --bg: #f8f9fa; }
+        body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 10px; background: var(--bg); color: #333; }
+        .card { background: white; padding: 15px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; font-size: 1.2em; color: var(--primary); margin: 10px 0; }
         
-        .item-row { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e8eaed; position: relative; }
-        .row-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; color: #1a73e8; }
+        /* 全体サマリー */
+        .summary-panel { background: var(--primary); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 15px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.8em; margin-bottom: 8px; display: inline-block; }
         
-        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .input-group { display: flex; flex-direction: column; }
-        label { font-size: 0.75em; color: #5f6368; margin-bottom: 4px; }
-        input { padding: 8px; border: 1px solid #dadce0; border-radius: 6px; font-size: 0.9em; }
-        
-        .slider-box { grid-column: span 2; margin-top: 10px; }
-        .slider-info { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: bold; }
+        /* 諸経費の詳細エリア */
+        .cost-detail-box { background: #fffde7; border: 1px solid #fff59d; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85em; }
+        .cost-detail-box div { display: flex; justify-content: space-between; margin-bottom: 4px; }
 
-        .result-panel { background: #1a73e8; color: white; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center; }
-        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; background: rgba(255,255,255,0.2); margin-bottom: 10px; display: inline-block; }
+        /* 銘柄入力エリア */
+        .item-row { background: #fff; border: 1px solid #e0e0e0; padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+        .item-header { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         
-        .btn-add { background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
-        .btn-del { background: #d93025; color: white; border: none; border-radius: 4px; padding: 2px 8px; font-size: 0.7em; cursor: pointer; }
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .field { display: flex; flex-direction: column; }
+        .field label { font-size: 0.7em; color: #777; margin-bottom: 2px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; width: 100%; box-sizing: border-box; }
+        
+        .slider-area { grid-column: span 2; margin-top: 5px; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 0.8em; font-weight: bold; color: var(--primary); }
+        input[type="range"] { width: 100%; margin: 8px 0; }
 
-        .detail-table { width: 100%; border-collapse: collapse; font-size: 0.8em; margin-top: 10px; }
-        .detail-table th { text-align: left; padding: 8px; border-bottom: 2px solid #eee; }
-        .detail-table td { padding: 8px; border-bottom: 1px solid #eee; }
+        .btn-add { background: var(--success); color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 15px; }
+        .btn-del { background: #eee; color: #666; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; }
+
+        /* 結果テーブル */
+        .result-table { width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 10px; }
+        .result-table th { text-align: left; padding: 8px; background: #eee; }
+        .result-table td { padding: 8px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>PSA多銘柄 収支計算</h2>
+    <h2>PSA多銘柄シミュレーター</h2>
 
-    <div class="result-panel">
+    <div class="summary-panel">
         <div id="planBadge" class="badge">判定中...</div>
-        <div>全 <span id="totalCount">0</span> 枚の期待合計利益</div>
-        <div style="font-size: 2.5em; font-weight: bold;"><span id="totalProfit">0</span>円</div>
+        <div>全 <span id="totalNum">0</span> 枚 期待利益</div>
+        <div style="font-size: 2em; font-weight: bold;"><span id="totalProfit">0</span>円</div>
+    </div>
+
+    <div class="cost-detail-box">
+        <div style="font-weight:bold; border-bottom:1px solid #eee; margin-bottom:8px;">1枚あたりの共通諸経費 内訳</div>
+        <div><span>PSA鑑定料 (プラン適用)</span> <span id="c-kantei">0円</span></div>
+        <div><span>日本支社 事務手数料 (550円 ÷ 枚数)</span> <span id="c-admin">0円</span></div>
+        <div><span>PSA返送料 (枚数変動 ÷ 枚数)</span> <span id="c-ship">0円</span></div>
+        <div style="color:var(--primary); font-weight:bold;"><span>小計 (鑑定+諸経費/枚)</span> <span id="c-subtotal">0円</span></div>
     </div>
 
     <button class="btn-add" onclick="addRow()">+ 銘柄を追加</button>
 
-    <div id="itemsContainer">
-        </div>
+    <div id="itemsContainer"></div>
 
-    <table class="detail-table">
+    <table class="result-table">
         <thead>
-            <tr><th>銘柄</th><th>枚数</th><th>1枚平均利益</th><th>小計</th></tr>
+            <tr><th>銘柄</th><th>利益/枚</th><th>小計</th></tr>
         </thead>
         <tbody id="summaryBody"></tbody>
     </table>
@@ -65,17 +81,17 @@ function addRow() {
     div.className = 'item-row';
     div.id = `row-${rowCount}`;
     div.innerHTML = `
-        <div class="row-header">
+        <div class="item-header">
             <span>銘柄 #${rowCount}</span>
             <button class="btn-del" onclick="removeRow(${rowCount})">削除</button>
         </div>
-        <div class="grid-inputs">
-            <div class="input-group"><label>枚数</label><input type="number" class="num" value="5" oninput="calculate()"></div>
-            <div class="input-group"><label>仕入れ/枚</label><input type="number" class="buy" value="1000" oninput="calculate()"></div>
-            <div class="input-group"><label>10予想額</label><input type="number" class="s10" value="12000" oninput="calculate()"></div>
-            <div class="input-group"><label>9予想額</label><input type="number" class="s9" value="3000" oninput="calculate()"></div>
-            <div class="slider-box">
-                <div class="slider-info"><span>10取得率</span><span class="rate-disp">80%</span></div>
+        <div class="input-grid">
+            <div class="field"><label>枚数</label><input type="number" class="num" value="5" oninput="calculate()"></div>
+            <div class="field"><label>仕入れ/枚</label><input type="number" class="buy" value="1000" oninput="calculate()"></div>
+            <div class="field"><label>PSA10予想</label><input type="number" class="s10" value="12000" oninput="calculate()"></div>
+            <div class="field"><label>9以下予想</label><input type="number" class="s9" value="3000" oninput="calculate()"></div>
+            <div class="slider-area">
+                <div class="slider-label"><span>10取得率</span><span class="rate-disp">80%</span></div>
                 <input type="range" class="rate" min="0" max="100" value="80" oninput="calculate()">
             </div>
         </div>
@@ -92,67 +108,53 @@ function removeRow(id) {
 function calculate() {
     const rows = document.querySelectorAll('.item-row');
     let totalNum = 0;
-    let itemsData = [];
+    rows.forEach(row => totalNum += (parseInt(row.querySelector('.num').value) || 0));
 
-    // 1. まず総枚数を把握
-    rows.forEach(row => {
-        const num = parseInt(row.querySelector('.num').value) || 0;
-        totalNum += num;
-    });
-
-    // 2. PSAプラン判定
+    // PSAプラン・返送料ロジック
     let kanteiFee = (totalNum >= 20) ? 3980 : 4980;
-    document.getElementById('planBadge').innerText = (totalNum >= 20) ? "バリュー・バルク適用中" : "バリュー(単品)適用中";
-    document.getElementById('planBadge').style.background = (totalNum >= 20) ? "#34a853" : "#1a73e8";
-
-    // 3. 返送料計算
     let returnShip = 2000;
     if (totalNum >= 2 && totalNum <= 4) returnShip = 2500;
     else if (totalNum >= 5 && totalNum <= 10) returnShip = 3500;
     else if (totalNum >= 11 && totalNum <= 20) returnShip = 4500;
     else if (totalNum > 20) returnShip = 6500;
-    const fixedPerCard = (returnShip + 550) / (totalNum || 1);
 
-    // 4. 各銘柄の利益計算
-    let grandTotalProfit = 0;
+    const adminPerCard = 550 / (totalNum || 1);
+    const shipPerCard = returnShip / (totalNum || 1);
+    const fixedPerCard = kanteiFee + adminPerCard + shipPerCard;
+
+    // 諸経費表示更新
+    document.getElementById('c-kantei').innerText = kanteiFee.toLocaleString() + "円";
+    document.getElementById('c-admin').innerText = Math.round(adminPerCard).toLocaleString() + "円";
+    document.getElementById('c-ship').innerText = Math.round(shipPerCard).toLocaleString() + "円";
+    document.getElementById('c-subtotal').innerText = Math.round(fixedPerCard).toLocaleString() + "円";
+
+    // 銘柄ごとの利益計算
+    let grandTotal = 0;
     let summaryHtml = "";
-
-    rows.forEach((row, index) => {
-        const num = parseInt(row.querySelector('.num').value) || 0;
-        const buy = parseInt(row.querySelector('.buy').value) || 0;
+    rows.forEach((row, i) => {
+        const n = parseInt(row.querySelector('.num').value) || 0;
+        const b = parseInt(row.querySelector('.buy').value) || 0;
         const s10 = parseInt(row.querySelector('.s10').value) || 0;
         const s9 = parseInt(row.querySelector('.s9').value) || 0;
-        const rate = parseInt(row.querySelector('.rate').value) / 100;
-        row.querySelector('.rate-disp').innerText = Math.round(rate * 100) + "%";
+        const r = parseInt(row.querySelector('.rate').value) / 100;
+        row.querySelector('.rate-disp').innerText = (r * 100) + "%";
 
-        const cost10 = Math.floor(s10 * 0.1) + 500;
-        const cost9 = Math.floor(s9 * 0.1) + 500;
+        const p10 = (s10 * 0.9 - 500) - (b + fixedPerCard);
+        const p9 = (s9 * 0.9 - 500) - (b + fixedPerCard);
+        const avg = (p10 * r) + (p9 * (1 - r));
+        const sub = avg * n;
+        grandTotal += sub;
 
-        const profit10 = s10 - (buy + kanteiFee + fixedPerCard + cost10);
-        const profit9 = s9 - (buy + kanteiFee + fixedPerCard + cost9);
-        const avgProfit = (profit10 * rate) + (profit9 * (1 - rate));
-        const subTotal = avgProfit * num;
-
-        grandTotalProfit += subTotal;
-
-        summaryHtml += `
-            <tr>
-                <td>銘柄#${index+1}</td>
-                <td>${num}枚</td>
-                <td>${Math.round(avgProfit).toLocaleString()}円</td>
-                <td><b>${Math.round(subTotal).toLocaleString()}円</b></td>
-            </tr>
-        `;
+        summaryHtml += `<tr><td>#${i+1} (${n}枚)</td><td>${Math.round(avg).toLocaleString()}</td><td><b>${Math.round(sub).toLocaleString()}</b></td></tr>`;
     });
 
-    document.getElementById('totalCount').innerText = totalNum;
-    document.getElementById('totalProfit').innerText = Math.round(grandTotalProfit).toLocaleString();
+    document.getElementById('planBadge').innerText = (totalNum >= 20) ? "バリュー・バルク適用" : "バリュー適用";
+    document.getElementById('totalNum').innerText = totalNum;
+    document.getElementById('totalProfit').innerText = Math.round(grandTotal).toLocaleString();
     document.getElementById('summaryBody').innerHTML = summaryHtml;
 }
 
-// 初期状態で1つ追加
 addRow();
 </script>
-
 </body>
 </html>
